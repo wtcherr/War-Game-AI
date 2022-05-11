@@ -1,0 +1,32 @@
+<SquareCell>:
+	Label:
+		text:str(root.value)
+		canvas.before:
+			Color:
+				rgba:root.color
+			Rectangle:
+				size:self.size
+				pos:self.pos
+	#Label:
+		#text:str(1<<(root.i*4+root.j))
+		#canvas.before:
+			#Color:
+				#rgba:root.color
+			#Rectangle:
+				#size:self.size
+				#pos:self.pos
+<SquareGrid>:
+	rows:self.gridSize
+	cols:self.gridSize
+	spacing:[5,5]
+<Player>:
+	Label:
+		text:str(root.score)
+		size:root.size
+		pos:root.pos
+		canvas.before:
+			Color:
+				rgba:root.color
+			Rectangle:
+				size:self.size
+				pos:self.pos
