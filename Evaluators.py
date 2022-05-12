@@ -1,107 +1,83 @@
-import random
-import math
-from turtle import pos
-from kivy.uix.widget import Widget
 from kivy.properties import NumericProperty, ColorProperty
+from kivy.uix.boxlayout import BoxLayout
+import math
 
 
-class Player(Widget):
-    score = NumericProperty(0)
-    color = ColorProperty()
+class MaxEvaluator(BoxLayout):
+    evaluation = NumericProperty(0)
+    bestMove = NumericProperty(0)
+    current_player_color = ColorProperty()
+    other_player_color = ColorProperty()
+    winpercentage = NumericProperty(0.9)
 
-    def __init__(self, id, **kwargs):
+    def __init__(self, depth=13, alphabeta=False, **kwargs):
         super().__init__(**kwargs)
-        self.selected_cell = None
-        self.id = id
-        self.i = -1
-        self.j = -1
-        self.color = random.random(), random.random(), random.random(), 1
-        self.score = 0
-
-    def getMove(self):
-        pass
-
-    def set_selected_cell(self, cell):
-        pass
-
-    def occupy(self, cell):
-        self.score += cell.get_value()
-        self.i, self.j = cell.i, cell.j
-
-    def set_grid(self, grid):
-        self.grid = grid
-
-    def set_other_player(self, player):
-        self.other_player = player
-
-    def get_position(self):
-        return self.i, self.j
-
-
-class HumanPlayer(Player):
-    def __init__(self, id, **kwargs):
-        super().__init__(id, **kwargs)
-
-    def getMove(self):
-        if self.selected_cell != None:
-            cell = self.selected_cell
-            self.set_selected_cell(None)
-            return cell
-        return None
-
-    def set_selected_cell(self, cell):
-        self.selected_cell = cell
-
-
-class RandomPlayer(Player):
-    def __init__(self, id, **kwargs):
-        super().__init__(id, **kwargs)
-
-    def getMove(self):
-        cells = self.grid.get_moves(self)
-        return random.choice(cells)
-
-
-class MaxPlayer(Player):
-    def __init__(self, id, **kwargs):
-        super().__init__(id, **kwargs)
-
-    def getMove(self):
-        cells = self.grid.get_moves(self)
-        maxValue = 0
-        maxCell = None
-        for cell in cells:
-            if maxValue < cell.get_value():
-                maxValue = cell.get_value()
-                maxCell = cell
-        return maxCell
-
-
-class AIPlayer(Player):
-    def __init__(self, id, depth=5, alphabeta=False, **kwargs):
-        super().__init__(id, **kwargs)
         self.memo = {}
         self.depth = depth
         self.alphabeta = alphabeta
+        self.maxValue = 0
+        self.maxMove = 0
+        self.minValue = 0
+        self.minMove = 0
 
-    def getMove(self):
+    def get_evaluation(self):
         state = self.getGameState(self.grid)
-        return self.findMaximizerBestMove(state, self.depth) if self.isMaximizerTurn(state) else self.findMinimizerBestMove(state, self.depth)
+        return self.maxValue if self.isMaximizerTurn(state) else self.minValue
+
+    def get_best_move(self):
+        state = self.getGameState(self.grid)
+        sz = self.grid.get_size()
+        if self.isMaximizerTurn(state):
+            if self.maxMove > 0 and self.maxMove < (1 << sz*sz):
+                maxMoveBit = math.log2(self.maxMove)
+                maxMoveX, maxMoveY = int(maxMoveBit / sz), int(maxMoveBit % sz)
+                return maxMoveX*sz+maxMoveY
+            return self.maxMove
+        else:
+            if self.minMove > 0 and self.minMove < (1 << sz*sz):
+                minMoveBit = math.log2(self.minMove)
+                minMoveX, minMoveY = int(minMoveBit/sz), int(minMoveBit % sz)
+                return minMoveX*sz+minMoveY
+            return self.minMove
+
+    def set_game(self, game):
+        self.game = game
+        self.grid = self.game.grid
+        self.current_player = self.game.currentPlayer
+        self.other_player = self.game.otherPlayer
+        state = self.getGameState(self.grid)
+        if self.isMaximizerTurn(state):
+            self.current_player_color = self.current_player.color
+            self.other_player_color = self.other_player.color
+            self.findMaximizerBestMove(state, self.depth)
+        else:
+            self.current_player_color = self.other_player.color
+            self.other_player_color = self.current_player.color
+            self.findMinimizerBestMove(state, self.depth)
+        self.evaluation = self.get_evaluation()
+        self.bestMove = self.get_best_move()
+        self.updateWinPercentage()
+
+    def updateWinPercentage(self):
+        sz = self.grid.get_size()
+        factor = 25
+        scale = sz*factor
+        self.winpercentage = max(0, min(1, (self.evaluation+scale)/(2*scale)))
 
     def findMaximizerBestMove(self, state, depth):
         (occupied1, occupied2, position1, position2) = state
         sz = self.grid.get_size()
         moves = self.getValidMoves(state, position1)
-        maxValue = -math.inf
-        maxMove = 0
+        self.maxValue = -math.inf
+        self.maxMove = 0
         for move in moves:
             nxtState = (occupied1 | move, occupied2, move, position2)
             moveValue = self.miniMax(nxtState, depth, -math.inf, math.inf)
-            if maxValue < moveValue:
-                maxValue = moveValue
-                maxMove = move
-        if maxMove != 0:
-            moveBit = math.log2(maxMove)
+            if self.maxValue < moveValue:
+                self.maxValue = moveValue
+                self.maxMove = move
+        if self.maxMove != 0:
+            moveBit = math.log2(self.maxMove)
             x = int(moveBit/sz)
             y = int(moveBit % sz)
             return self.grid.cells[x][y]
@@ -112,16 +88,16 @@ class AIPlayer(Player):
         (occupied1, occupied2, position1, position2) = state
         sz = self.grid.get_size()
         moves = self.getValidMoves(state, position2)
-        minValue = math.inf
-        minMove = 0
+        self.minValue = math.inf
+        self.minMove = 0
         for move in moves:
             nxtState = (occupied1, occupied2 | move, position1, move)
             moveValue = self.miniMax(nxtState, depth, -math.inf, math.inf)
-            if minValue > moveValue:
-                minValue = moveValue
-                minMove = move
-        if minMove != 0:
-            moveBit = math.log2(minMove)
+            if self.minValue > moveValue:
+                self.minValue = moveValue
+                self.minMove = move
+        if self.minMove != 0:
+            moveBit = math.log2(self.minMove)
             x = int(moveBit/sz)
             y = int(moveBit % sz)
             return self.grid.cells[x][y]
@@ -228,22 +204,22 @@ class AIPlayer(Player):
         position2 = 0
         for i in range(len(cells)):
             for j in range(len(cells[i])):
-                if cells[i][j].get_owner() == self:
-                    if self.id == 1:
+                if cells[i][j].get_owner() == self.current_player:
+                    if self.current_player.id == 1:
                         occupied1 |= (1 << (i*sz+j))  # 2^(i*sz+j)
-                    elif self.id == 2:
+                    elif self.current_player.id == 2:
                         occupied2 |= (1 << (i*sz+j))
                 elif cells[i][j].get_owner() == self.other_player:
                     if self.other_player.id == 1:
                         occupied1 |= (1 << (i*sz+j))  # 2^(i*sz+j)
                     elif self.other_player.id == 2:
                         occupied2 |= (1 << (i*sz+j))
-        (p1x, p1y) = self.get_position()
+        (p1x, p1y) = self.current_player.get_position()
         (p2x, p2y) = self.other_player.get_position()
         if p1x != -1 and p1y != -1:
-            if self.id == 1:
+            if self.current_player.id == 1:
                 position1 = (1 << (p1x*sz+p1y))
-            elif self.id == 2:
+            elif self.current_player.id == 2:
                 position2 = (1 << (p1x*sz+p1y))
         if p2x != -1 and p2y != -1:
             if self.other_player.id == 1:

@@ -1,20 +1,23 @@
 <SquareCell>:
+	orientation:'vertical'
 	Label:
 		text:str(root.value)
+		font_size:18
 		canvas.before:
 			Color:
 				rgba:root.color
 			Rectangle:
 				size:self.size
 				pos:self.pos
-	#Label:
-		#text:str(1<<(root.i*4+root.j))
-		#canvas.before:
-			#Color:
-				#rgba:root.color
-			#Rectangle:
-				#size:self.size
-				#pos:self.pos
+	Label:
+		text:str(root.i*root.gridSize+root.j)
+		color: (1,1,1,0.5)
+		canvas.before:
+			Color:
+				rgba:root.color
+			Rectangle:
+				size:self.size
+				pos:self.pos
 <SquareGrid>:
 	rows:self.gridSize
 	cols:self.gridSize
@@ -22,6 +25,7 @@
 <Player>:
 	Label:
 		text:str(root.score)
+		font_size:18
 		size:root.size
 		pos:root.pos
 		canvas.before:
@@ -30,3 +34,21 @@
 			Rectangle:
 				size:self.size
 				pos:self.pos
+
+<MaxEvaluator>:
+	orientation:'vertical'
+	Label:
+		text:"Evaluation: "+str(root.evaluation)
+		canvas.before:
+			Color:
+				rgba:root.other_player_color
+			Rectangle:
+				size:self.size
+				pos:self.pos
+			Color:
+				rgba:root.current_player_color
+			Rectangle:
+				size:self.width,self.height*root.winpercentage
+				pos:self.pos[0],self.pos[1]+self.height*(1-root.winpercentage)
+	Label:
+		text:"Best Move: "+str(root.bestMove)

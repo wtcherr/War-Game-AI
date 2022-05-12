@@ -1,5 +1,3 @@
-import imp
-from shutil import move
 from kivy.uix.gridlayout import GridLayout
 from kivy.properties import NumericProperty
 from Cells import SquareCell, cellState
@@ -14,7 +12,7 @@ class SquareGrid(GridLayout):
         self.create_cells()
 
     def create_cells(self):
-        self.cells = [[SquareCell(i, j) for j in range(
+        self.cells = [[SquareCell(i, j, self.gridSize) for j in range(
             self.gridSize)] for i in range(self.gridSize)]
         for i in range(self.gridSize):
             for j in range(self.gridSize):

@@ -1,4 +1,3 @@
-from ast import Num
 import random
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import StringProperty, ColorProperty, ObjectProperty, NumericProperty
@@ -12,9 +11,9 @@ class cellState(enum.Enum):
 
 
 class cellColors():
-    color = {cellState.unavailable: (random.random(), random.random(), random.random(), 1),
+    color = {cellState.unavailable: (random.random(), random.random(), random.random(), 0.2),
              cellState.occupied: (random.random(), random.random(), random.random(), 1),
-             cellState.available: (0.9, 0.8, 0.8, 1)}
+             cellState.available: (0.9, 0.8, 0.8, 0.5)}
 
 
 class SquareCell(BoxLayout):
@@ -23,11 +22,13 @@ class SquareCell(BoxLayout):
     state = ObjectProperty()
     i = NumericProperty()
     j = NumericProperty()
+    gridSize = NumericProperty()
 
-    def __init__(self, i, j, ** kwargs):
+    def __init__(self, i, j, gsz, ** kwargs):
         super().__init__(**kwargs)
         self.i = i
         self.j = j
+        self.gridSize = gsz
         self.value = random.randint(1, 99)
         self.color = random.random(), random.random(), random.random(), 1
         self.bind(state=self.update_color)
